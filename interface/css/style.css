@@ -1,0 +1,351 @@
+/* ===== Colours (Clean Light) ===== */
+:root {
+  --bg:#f6f7f9;
+  --card:#fff;
+  --text:#1b1d22;
+  --muted:#6a7080;
+  --line:#d8dce3;
+  --accent:#2f6fed;
+  --on:#fff;
+  --leaf:#e3f4ea;
+  --leafb:#2e8b57;
+  --node:#eaf0fd;
+  --new:#fff1cc;
+  --newb:#d98e04;
+  --hl:#e8590c;
+  --ascii:#d6336c;
+}
+
+/* ===== Page basics ===== */
+* {
+  box-sizing:border-box;
+}
+
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font:15px/1.5 system-ui,"Segoe UI",Roboto,sans-serif;
+}
+
+.view {
+  max-width:1180px;
+  margin:0 auto;
+  padding:18px 16px 50px;
+}
+
+.view[hidden] {
+  display:none;
+}
+
+h1 {
+  font-size:24px;
+  margin:0;
+}
+
+h2 {
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--muted);
+  margin:0 0 10px;
+}
+
+.sub,.hint {
+  color:var(--muted);
+}
+
+.hint {
+  font-size:13px;
+}
+
+/* ===== Header and breadcrumbs ===== */
+.top {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+
+.crumbs {
+  font-size:13px;
+  color:var(--muted);
+}
+
+.crumbs b {
+  color:var(--accent);
+}
+
+/* ===== Cards and buttons ===== */
+.card {
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px;
+}
+
+.row {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+input[type=text] {
+  flex:1;
+  min-width:170px;
+  padding:9px 11px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--bg);
+  color:var(--text);
+  font:inherit;
+}
+
+button {
+  padding:8px 14px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--card);
+  color:var(--text);
+  font:inherit;
+  cursor:pointer;
+}
+
+button.p {
+  background:var(--accent);
+  border-color:var(--accent);
+  color:var(--on);
+  font-weight:600;
+}
+
+button:disabled {
+  opacity:.4;
+  cursor:default;
+}
+
+/* ===== Flow layout: left = Huffman flow, right = ASCII panel ===== */
+.grid {
+  display:grid;
+  grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
+  gap:16px;
+  align-items:start;
+}
+
+@media(max-width:860px) {
+  .grid {
+    grid-template-columns:1fr;
+  }
+}
+
+.fn {
+  position:relative;
+  padding-left:48px;
+}
+
+.fn .nb {
+  position:absolute;
+  left:12px;
+  top:12px;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  background:var(--accent);
+  color:var(--on);
+  font-weight:700;
+  display:grid;
+  place-items:center;
+  font-size:13px;
+}
+
+.fn.lock {
+  opacity:.55;
+}
+
+.arrow {
+  text-align:center;
+  color:var(--accent);
+  line-height:1;
+  padding:3px 0;
+  font-size:18px;
+}
+
+.side {
+  position:sticky;
+  top:12px;
+}
+
+/* ===== Shared pieces: message box, chips, scroll area ===== */
+.msg {
+  margin-top:10px;
+  padding:8px 10px;
+  border-radius:8px;
+  background:var(--new);
+  border-left:4px solid var(--newb);
+  color:var(--text);
+}
+
+.chips {
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+.chip {
+  padding:3px 9px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:var(--node);
+  font-size:13px;
+}
+
+.chip.leaf {
+  background:var(--leaf);
+  border-color:var(--leafb);
+}
+
+.chip.new {
+  background:var(--new);
+  border-color:var(--newb);
+}
+
+.scroll {
+  overflow-x:auto;
+  margin-top:10px;
+}
+
+/* ===== Tree drawing (SVG) ===== */
+.edge {
+  stroke:var(--line);
+  stroke-width:2;
+}
+
+.edge.hl {
+  stroke:var(--hl);
+  stroke-width:3.5;
+}
+
+.nd {
+  fill:var(--node);
+  stroke:var(--accent);
+  stroke-width:2;
+}
+
+.nd.leaf {
+  fill:var(--leaf);
+  stroke:var(--leafb);
+}
+
+.nd.new {
+  fill:var(--new);
+  stroke:var(--newb);
+}
+
+.nd.hl {
+  stroke:var(--hl);
+  stroke-width:3.5;
+}
+
+svg text {
+  fill:var(--text);
+  font-size:13px;
+  text-anchor:middle;
+  font-family:inherit;
+}
+
+.t2 {
+  font-size:11px;
+  fill:var(--muted);
+}
+
+.lbl {
+  fill:var(--muted);
+  font-size:12px;
+  font-weight:600;
+}
+
+/* ===== Tables ===== */
+table {
+  border-collapse:collapse;
+  width:100%;
+  font-size:13.5px;
+}
+
+th,td {
+  text-align:left;
+  padding:5px 8px;
+  border-bottom:1px solid var(--line);
+}
+
+tbody tr.hv:hover {
+  background:var(--node);
+  cursor:pointer;
+}
+
+code {
+  font-family:ui-monospace,Consolas,monospace;
+  word-break:break-all;
+}
+
+/* ===== Bars, stat boxes and the message comparison ===== */
+.bar {
+  height:20px;
+  border-radius:5px;
+  margin:4px 0;
+  color:#fff;
+  font-size:12px;
+  padding:0 8px;
+  line-height:20px;
+  white-space:nowrap;
+}
+
+.cA {
+  color:var(--ascii);
+}
+
+.cH {
+  color:var(--accent);
+}
+
+.stats {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:10px;
+  margin:14px 0;
+}
+
+.stat {
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px;
+}
+
+.stat b {
+  display:block;
+  font-size:22px;
+}
+
+.stat span {
+  color:var(--muted);
+  font-size:12px;
+}
+
+.two {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+@media(max-width:700px) {
+  .two {
+    grid-template-columns:1fr;
+  }
+}
+
+.save {
+  color:var(--leafb);
+  font-weight:600;
+}

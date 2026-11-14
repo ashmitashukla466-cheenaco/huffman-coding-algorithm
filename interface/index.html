@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Huffman vs ASCII</title>
+<style>
+/* ===== Clean Light colours ===== */
+[data-theme=light]{--bg:#f6f7f9;--card:#fff;--text:#1b1d22;--muted:#6a7080;--line:#d8dce3;--accent:#2f6fed;--on:#fff;--leaf:#e3f4ea;--leafb:#2e8b57;--node:#eaf0fd;--new:#fff1cc;--newb:#d98e04;--hl:#e8590c;--ascii:#d6336c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,"Segoe UI",Roboto,sans-serif}
+.view{max-width:1180px;margin:0 auto;padding:18px 16px 50px}
+.view[hidden]{display:none}
+h1{font-size:24px;margin:0}h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+.sub,.hint{color:var(--muted)}.hint{font-size:13px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.crumbs{font-size:13px;color:var(--muted)}.crumbs b{color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input[type=text]{flex:1;min-width:170px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+button{padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text);font:inherit;cursor:pointer}
+button.p{background:var(--accent);border-color:var(--accent);color:var(--on);font-weight:600}
+button:disabled{opacity:.4;cursor:default}
+/* flow layout */
+.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.fn{position:relative;padding-left:48px}
+.fn .nb{position:absolute;left:12px;top:12px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--on);font-weight:700;display:grid;place-items:center;font-size:13px}
+.fn.lock{opacity:.55}
+.arrow{text-align:center;color:var(--accent);line-height:1;padding:3px 0;font-size:18px}
+.side{position:sticky;top:12px}
+/* shared bits */
+.msg{margin-top:10px;padding:8px 10px;border-radius:8px;background:var(--new);border-left:4px solid var(--newb);color:var(--text)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--node);font-size:13px}
+.chip.leaf{background:var(--leaf);border-color:var(--leafb)}.chip.new{background:var(--new);border-color:var(--newb)}
+.scroll{overflow-x:auto;margin-top:10px}
+.edge{stroke:var(--line);stroke-width:2}.edge.hl{stroke:var(--hl);stroke-width:3.5}
+.nd{fill:var(--node);stroke:var(--accent);stroke-width:2}.nd.leaf{fill:var(--leaf);stroke:var(--leafb)}.nd.new{fill:var(--new);stroke:var(--newb)}.nd.hl{stroke:var(--hl);stroke-width:3.5}
+svg text{fill:var(--text);font-size:13px;text-anchor:middle;font-family:inherit}.t2{font-size:11px;fill:var(--muted)}.lbl{fill:var(--muted);font-size:12px;font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+tbody tr.hv:hover{background:var(--node);cursor:pointer}
+code{font-family:ui-monospace,Consolas,monospace;word-break:break-all}
+.bar{height:20px;border-radius:5px;margin:4px 0;color:#fff;font-size:12px;padding:0 8px;line-height:20px;white-space:nowrap}
+.cA{color:var(--ascii)}.cH{color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+.stat b{display:block;font-size:22px}.stat span{color:var(--muted);font-size:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.two{grid-template-columns:1fr}}
+.save{color:var(--leafb);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ========== PAGE 1: VISUALIZER + ASCII ========== -->
+<div class="view" id="v1">
+  <div class="top"><h1>Huffman Visualizer</h1>
+    <span class="crumbs"><b>1 Visualizer</b> › 2 Difference</span></div>
+  <div class="grid">
+    <!-- LEFT: flow graph -->
+    <div>
+      <div class="card fn"><span class="nb">1</span><h2>Input message</h2>
+        <div class="row"><input type="text" id="inp" value="abracadabra" maxlength="60" aria-label="Message">
+          <button class="p" id="build">Build</button><button id="sample">🎲 Sample</button></div></div>
+      <div class="arrow">▼</div>
+      <div class="card fn"><span class="nb">2</span><h2>Count frequencies</h2><div class="chips" id="freq"></div></div>
+      <div class="arrow">▼</div>
+      <div class="card fn"><span class="nb">3</span><h2>Build the tree</h2>
+        <div class="row"><button id="reset">⏮</button><button id="prev">◀ Back</button><button class="p" id="next">Next ▶</button>
+          <button id="play">Auto-play</button><button id="last">Finish ⏭</button><span class="hint" id="count"></span></div>
+        <div class="msg" id="msg"></div>
+        <p class="hint" style="margin:10px 0 4px">Priority queue (smallest first)</p><div class="chips" id="queue"></div>
+        <div class="scroll"><svg id="svg" role="img" aria-label="Huffman tree"></svg></div>
+        <p class="hint">Left edge = 0, right edge = 1</p></div>
+      <div class="arrow">▼</div>
+      <div class="card fn" id="n4"><span class="nb">4</span><h2>Huffman codes</h2><div id="codes"></div></div>
+      <div class="arrow">▼</div>
+      <div class="card fn" id="n5"><span class="nb">5</span><h2>Encoded message</h2><div id="enc"></div></div>
+    </div>
+    <!-- RIGHT: ASCII alongside -->
+    <aside class="side card"><h2>ASCII (fixed 8 bits per character)</h2><div id="ascii"></div>
+      <p style="margin:14px 0 0"><button class="p" id="diff" style="width:100%">See the difference →</button></p></aside>
+  </div>
+</div>
+
+<!-- ========== PAGE 2: DIFFERENCE ========== -->
+<div class="view" id="v2" hidden>
+  <div class="top"><h1>Message: ASCII vs Huffman</h1>
+    <div class="row"><span class="crumbs">1 Visualizer › <b>2 Difference</b></span><button id="back">← Back</button></div></div>
+  <div id="df"></div>
+</div>
+
+<script>
+var SAMPLES=["abracadabra","mississippi","huffman coding","data structures","she sells sea shells","banana bandana","artificial intelligence","aaaaabbc"];
+var $=function(i){return document.getElementById(i)};
+var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+var lab=function(c){return c===" "?"␣":c};
+var cmp=function(a,b){return a.freq-b.freq||a.id-b.id};
+var nm=function(n){return n.left?"node("+n.freq+")":"'"+lab(n.ch)+"'"};
+var S={steps:[],i:0,timer:null,last:-1};
+
+/* ---------- navigation ---------- */
+function show(n){[1,2].forEach(function(i){$("v"+i).hidden=i!==n});window.scrollTo(0,0)}
+$("diff").onclick=function(){stop();drawDiff();show(2)};
+$("back").onclick=function(){show(1)};
+
+/* ---------- Huffman core ---------- */
+function build(text){
+  var f={},i,id=0;
+  for(i=0;i<text.length;i++)f[text[i]]=(f[text[i]]||0)+1;
+  var fo=Object.keys(f).map(function(c){return{id:id++,ch:c,freq:f[c]}}).sort(cmp);
+  var st=[{fo:fo.slice(),nw:null,msg:"Start: one leaf per character, sorted by frequency."}];
+  while(fo.length>1){
+    var a=fo[0],b=fo[1],p={id:id++,freq:a.freq+b.freq,left:a,right:b};
+    fo=fo.slice(2);fo.push(p);fo.sort(cmp);
+    st.push({fo:fo.slice(),nw:p.id,msg:"Take the two smallest: "+nm(a)+" ("+a.freq+") + "+nm(b)+" ("+b.freq+") → new node "+p.freq+"."});
+  }
+  var codes={};
+  (function w(n,p){if(!n.left){codes[n.ch]=p||"0";return}w(n.left,p+"0");w(n.right,p+"1")})(fo[0],"");
+  return{f:f,st:st,root:fo[0],codes:codes};
+}
+function pathIds(n,ch){
+  if(!n.left)return n.ch===ch?[n.id]:null;
+  var r=pathIds(n.left,ch)||pathIds(n.right,ch);return r?[n.id].concat(r):null}
+function decode(root,bits){
+  if(!root.left)return root.ch.repeat(bits.length);
+  var o="",n=root;
+  for(var i=0;i<bits.length;i++){n=bits[i]==="0"?n.left:n.right;if(!n.left){o+=n.ch;n=root}}
+  return o}
+var asc=function(c){return c.charCodeAt(0).toString(2).padStart(8,"0")};
+
+/* ---------- tree layout + drawing ---------- */
+var GX=56,GY=64,PAD=30;
+function layout(fo){
+  var x=0,md=0;
+  function pl(n,d){n.y=d;if(d>md)md=d;if(!n.left){n.x=x++;return}pl(n.left,d+1);pl(n.right,d+1);n.x=(n.left.x+n.right.x)/2}
+  fo.forEach(function(r,i){pl(r,0);if(i<fo.length-1)x+=.4});
+  return{cols:x,md:md}}
+var px=function(n){return PAD+n.x*GX},py=function(n){return PAD+n.y*GY};
+function nodesOf(fo){var a=[];function w(n){a.push(n);if(n.left){w(n.left);w(n.right)}}fo.forEach(w);return a}
+
+/* paint = draw the tree once, using the given positions (pos[id] = {x,y}) */
+function paint(st,pos,fade,ids){
+  var hl=ids?new Set(ids):null,E="",N="";
+  function dr(n){
+    var a=pos[n.id],o=n.id===st.nw?fade:1;
+    if(n.left)[[n.left,"0"],[n.right,"1"]].forEach(function(p){
+      var c=p[0],b=pos[c.id],on=hl&&hl.has(n.id)&&hl.has(c.id);
+      E+='<g opacity="'+o+'"><line class="edge'+(on?" hl":"")+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"/>'+
+         '<text class="lbl" x="'+((a.x+b.x)/2+(p[1]==="0"?-9:9))+'" y="'+((a.y+b.y)/2)+'">'+p[1]+'</text></g>';
+      dr(c)});
+    N+='<g opacity="'+o+'"><circle class="nd'+(n.left?"":" leaf")+(n.id===st.nw?" new":"")+(hl&&hl.has(n.id)?" hl":"")+'" cx="'+a.x+'" cy="'+a.y+'" r="'+(21*(.5+.5*o))+'"/>'+
+      (n.left?'<text x="'+a.x+'" y="'+(a.y+5)+'">'+n.freq+'</text>'
+        :'<text x="'+a.x+'" y="'+(a.y-1)+'" style="font-weight:700">'+esc(lab(n.ch))+'</text><text class="t2" x="'+a.x+'" y="'+(a.y+12)+'">'+n.freq+'</text>')+'</g>'}
+  st.fo.forEach(dr);
+  $("svg").innerHTML=E+N}
+
+/* drawTree = work out the target positions, then glide the nodes there */
+var MOVE_MS=750; /* animation time: make it bigger for slower movement */
+function drawTree(st,ids,animate){
+  var sz=layout(st.fo),nodes=nodesOf(st.fo),T={};
+  nodes.forEach(function(n){T[n.id]={x:px(n),y:py(n)}});
+  var w=Math.max(PAD*2+Math.max(sz.cols-1,0)*GX,200),h=PAD*2+sz.md*GY,sv=$("svg");
+  sv.setAttribute("width",w);sv.setAttribute("height",h);sv.setAttribute("viewBox","0 0 "+w+" "+h);
+  if(S.raf){cancelAnimationFrame(S.raf);S.raf=0}
+  var still=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(!animate||!S.cur||still){S.cur=T;paint(st,T,1,ids);return}
+  var from={},C=S.cur;
+  nodes.forEach(function(n){
+    if(C[n.id])from[n.id]=C[n.id];                      /* existing node: start where it is now */
+    else if(n.left&&C[n.left.id]&&C[n.right.id])        /* new parent: appears between its two children */
+      from[n.id]={x:(C[n.left.id].x+C[n.right.id].x)/2,y:(C[n.left.id].y+C[n.right.id].y)/2};
+    else from[n.id]=T[n.id]});
+  var t0=performance.now();
+  function frame(now){
+    var k=Math.min(1,(now-t0)/MOVE_MS),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2,cur={};
+    nodes.forEach(function(n){var f=from[n.id],t=T[n.id];cur[n.id]={x:f.x+(t.x-f.x)*e,y:f.y+(t.y-f.y)*e}});
+    S.cur=cur;paint(st,cur,e,ids);
+    if(k<1)S.raf=requestAnimationFrame(frame);else{S.raf=0;S.cur=T}}
+  S.raf=requestAnimationFrame(frame)}
+
+/* ---------- render page 2 ---------- */
+function uniq(){return Object.keys(S.f).sort(function(a,b){return S.f[b]-S.f[a]||(a<b?-1:1)})}
+function huffBits(){return S.text.split("").reduce(function(t,c){return t+S.codes[c].length},0)}
+function render(){
+  var st=S.steps[S.i],last=S.i===S.steps.length-1;
+  $("count").textContent="Step "+S.i+" / "+(S.steps.length-1);
+  $("msg").textContent=st.msg+(last&&S.steps.length>1?" One tree left: done.":"");
+  $("prev").disabled=$("reset").disabled=S.i===0;$("next").disabled=$("last").disabled=last;
+  $("queue").innerHTML=st.fo.map(function(n){return'<span class="chip '+(n.left?"":"leaf ")+(n.id===st.nw?"new":"")+'">'+esc(n.left?"node":lab(n.ch))+" : "+n.freq+"</span>"}).join("");
+  drawTree(st,null,true);
+  $("n4").className="card fn"+(last?"":" lock");$("n5").className="card fn"+(last?"":" lock");
+  // node 4 + 5
+  if(!last){$("codes").innerHTML='<p class="hint">Finish the tree to see the codes.</p>';$("enc").innerHTML='<p class="hint">Waiting for the codes.</p>'}
+  else{
+    $("codes").innerHTML='<table><thead><tr><th>Char</th><th>Freq</th><th>Code</th><th>Bits</th></tr></thead><tbody>'+
+      Object.keys(S.codes).sort(function(a,b){return S.codes[a].length-S.codes[b].length||(a<b?-1:1)}).map(function(c){
+        return'<tr class="hv" data-c="'+esc(c)+'"><td><b>'+esc(lab(c))+'</b></td><td>'+S.f[c]+'</td><td><code>'+S.codes[c]+'</code></td><td>'+S.codes[c].length+'</td></tr>'}).join("")+
+      '</tbody></table><p class="hint">Hover a row to light up its path in the tree.</p>';
+    Array.prototype.forEach.call($("codes").querySelectorAll("tr.hv"),function(tr){
+      var sh=function(){drawTree(S.steps[S.i],pathIds(S.root,tr.getAttribute("data-c")))};
+      tr.onmouseenter=sh;tr.onclick=sh;tr.onmouseleave=function(){drawTree(S.steps[S.i],null)}});
+    var e=S.text.split("").map(function(c){return S.codes[c]}).join("");
+    $("enc").innerHTML='<code>'+(e.length>200?e.slice(0,200)+"…":e)+'</code><p class="hint">'+e.length+' bits in total</p>'}
+  // ASCII side panel
+  var ab=S.text.length*8,hb=last?huffBits():0;
+  $("ascii").innerHTML='<table><thead><tr><th>Char</th><th>Dec</th><th>8-bit code</th><th>Freq</th><th>Bits</th></tr></thead><tbody>'+
+    uniq().map(function(c){return'<tr><td><b>'+esc(lab(c))+'</b></td><td>'+c.charCodeAt(0)+'</td><td><code>'+asc(c)+'</code></td><td>'+S.f[c]+'</td><td>'+S.f[c]*8+'</td></tr>'}).join("")+
+    '</tbody></table><p style="margin:10px 0 2px"><b>ASCII total: '+ab+' bits</b></p>'+
+    '<div class="bar" style="background:var(--ascii);width:100%">ASCII '+ab+'</div>'+
+    (last?'<div class="bar" style="background:var(--accent);color:var(--on);width:'+Math.max(8,hb/ab*100)+'%">Huffman '+hb+'</div><p class="save">Saved '+(ab-hb)+' bits ('+((ab-hb)/ab*100).toFixed(1)+'%)</p>'
+         :'<p class="hint">Finish the Huffman tree to compare sizes here.</p>')}
+
+/* ---------- page 3: difference ---------- */
+function drawDiff(){
+  var T=S.text,ab=T.length*8,hb=huffBits(),e=T.split("").map(function(c){return S.codes[c]}).join(""),back=decode(S.root,e);
+  var rows=T.split("").map(function(c,i){var h=S.codes[c];
+    return'<tr><td>'+(i+1)+'</td><td><b>'+esc(lab(c))+'</b></td><td><code class="cA">'+asc(c)+'</code></td><td><code class="cH">'+h+'</code></td><td class="save">'+(8-h.length)+'</td></tr>'}).join("");
+  $("df").innerHTML=
+   '<div class="card"><h2>Your message</h2><b style="font-size:20px">"'+esc(T)+'"</b> <span class="hint">('+T.length+' characters)</span></div>'+
+   '<div class="stats"><div class="stat"><b class="cA">'+ab+'</b><span>ASCII bits (8 each)</span></div>'+
+   '<div class="stat"><b class="cH">'+hb+'</b><span>Huffman bits</span></div>'+
+   '<div class="stat"><b class="save">'+(ab-hb)+'</b><span>Bits saved ('+((ab-hb)/ab*100).toFixed(1)+'%)</span></div>'+
+   '<div class="stat"><b>'+(hb/T.length).toFixed(2)+'</b><span>Avg Huffman bits / char (ASCII: 8)</span></div>'+
+   '<div class="stat"><b>'+(ab/hb).toFixed(2)+' : 1</b><span>Compression ratio</span></div></div>'+
+   '<div class="card"><h2>Size comparison</h2><div class="bar" style="background:var(--ascii);width:100%">ASCII '+ab+' bits</div>'+
+   '<div class="bar" style="background:var(--accent);color:var(--on);width:'+Math.max(8,hb/ab*100)+'%">Huffman '+hb+' bits</div></div>'+
+   '<div class="two" style="margin-top:14px"><div class="card"><h2>Message as ASCII</h2><code class="cA">'+T.split("").map(asc).join(" ")+'</code></div>'+
+   '<div class="card"><h2>Message as Huffman</h2><code class="cH">'+e+'</code></div></div>'+
+   '<div class="card" style="margin-top:14px"><h2>Character by character</h2><div class="scroll" style="max-height:340px;overflow:auto"><table><thead><tr><th>#</th><th>Char</th><th>ASCII</th><th>Huffman</th><th>Bits saved</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
+   '<div class="card" style="margin-top:14px"><h2>Check</h2>Decoding the Huffman bits gives: <b>"'+esc(back)+'"</b> '+(back===T?'<span class="save">✔ matches the original</span>':'✘ mismatch')+
+   '<p class="hint" style="margin-bottom:0">Note: a real compressed file must also store the tree or frequency table. For very short messages that extra cost can cancel the saving.</p></div>'}
+
+/* ---------- controls ---------- */
+function stop(){if(S.timer){clearInterval(S.timer);S.timer=null;$("play").textContent="Auto-play"}}
+function go(n){S.i=Math.max(0,Math.min(S.steps.length-1,n));render()}
+function start(){
+  stop();var t=$("inp").value;
+  if(!t){$("msg").textContent="Please type a message first.";return}
+  var r=build(t);S.text=t;S.f=r.f;S.steps=r.st;S.root=r.root;S.codes=r.codes;S.i=0;S.cur=null;
+  $("freq").innerHTML=uniq().map(function(c){return'<span class="chip leaf">'+esc(lab(c))+" : "+S.f[c]+"</span>"}).join("");
+  render()}
+$("build").onclick=start;
+$("inp").addEventListener("keydown",function(e){if(e.key==="Enter")start()});
+$("sample").onclick=function(){var k;do{k=Math.floor(Math.random()*SAMPLES.length)}while(k===S.last);S.last=k;$("inp").value=SAMPLES[k];start()};
+$("next").onclick=function(){stop();go(S.i+1)};$("prev").onclick=function(){stop();go(S.i-1)};
+$("reset").onclick=function(){stop();go(0)};$("last").onclick=function(){stop();go(S.steps.length-1)};
+$("play").onclick=function(){
+  if(S.timer){stop();return}
+  if(S.i>=S.steps.length-1)go(0);
+  $("play").textContent="Pause";
+  S.timer=setInterval(function(){if(S.i>=S.steps.length-1){stop();return}go(S.i+1)},1100)};
+start();
+</script>
+</body>
+</html>
